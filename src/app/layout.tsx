@@ -5,8 +5,8 @@ import "./globals.css";
 
 /** 環境変数があれば優先（未設定時はご指定の ID） */
 const gaMeasurementId =
-  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-Y9632M2PQ1";
-const gtmId = process.env.NEXT_PUBLIC_GTM_ID ?? "GTM-WXGX5S5L";
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-T0V7RCR8MS";
+const gtmId = process.env.NEXT_PUBLIC_GTM_ID ?? "GTM-52K48V46";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
