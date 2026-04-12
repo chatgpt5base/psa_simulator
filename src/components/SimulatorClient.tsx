@@ -98,7 +98,7 @@ export function SimulatorClient() {
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
       <header className="mb-10 text-center sm:mb-12">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/80">
-          Pokémon Card
+          TCG Card
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
           PSA鑑定 利益シミュレーター
