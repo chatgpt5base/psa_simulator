@@ -1,9 +1,8 @@
 import { addBusinessDaysAfter } from "./businessDays";
 import type { GradingPlan } from "./gradingPlans";
 
-/** プランに依存しない到着〜受付開始まで */
+/** プランに依存しない到着〜受付開始まで（到着は発送日+片道配送日数で推定） */
 export type SharedTimelineBase = {
-  arrivalSource: "input" | "estimated";
   effectiveArrival: Date;
   receptionEarliest: Date;
   receptionLatest: Date;
@@ -72,28 +71,16 @@ export function computeProfit(inputs: {
 
 export function computeSharedTimelineBase(inputs: {
   shipDate: Date;
-  arrivalOverride: Date | null;
   oneWayShippingBusinessDays: number;
 }): SharedTimelineBase {
-  const { shipDate, arrivalOverride } = inputs;
+  const { shipDate } = inputs;
   const oneWay = Math.max(0, Math.floor(inputs.oneWayShippingBusinessDays));
 
-  let effectiveArrival: Date;
-  let arrivalSource: "input" | "estimated";
-
-  if (arrivalOverride) {
-    effectiveArrival = arrivalOverride;
-    arrivalSource = "input";
-  } else {
-    effectiveArrival = addBusinessDaysAfter(shipDate, oneWay);
-    arrivalSource = "estimated";
-  }
-
+  const effectiveArrival = addBusinessDaysAfter(shipDate, oneWay);
   const receptionEarliest = addBusinessDaysAfter(effectiveArrival, 10);
   const receptionLatest = addBusinessDaysAfter(effectiveArrival, 20);
 
   return {
-    arrivalSource,
     effectiveArrival,
     receptionEarliest,
     receptionLatest,
@@ -121,8 +108,8 @@ export function computePlanTimelineSlice(
 export function buildPlanComparisonRows(inputs: {
   plans: GradingPlan[];
   shipDate: Date | null;
-  arrivalOverride: Date | null;
-  oneWayShippingBusinessDays: number;
+  /** 未入力のときはスケジュールを出さない */
+  oneWayShippingBusinessDays: number | null;
   purchase: string;
   salePrice: string;
   commissionRate: string;
@@ -132,7 +119,9 @@ export function buildPlanComparisonRows(inputs: {
   rows: PlanComparisonRow[];
 } {
   const { plans, shipDate } = inputs;
-  if (!shipDate) {
+  const oneWay = inputs.oneWayShippingBusinessDays;
+
+  if (!shipDate || oneWay === null) {
     return {
       shared: null,
       rows: plans.map((plan) => ({
@@ -151,8 +140,7 @@ export function buildPlanComparisonRows(inputs: {
 
   const shared = computeSharedTimelineBase({
     shipDate,
-    arrivalOverride: inputs.arrivalOverride,
-    oneWayShippingBusinessDays: inputs.oneWayShippingBusinessDays,
+    oneWayShippingBusinessDays: oneWay,
   });
 
   const rows: PlanComparisonRow[] = plans.map((plan) => ({
@@ -172,14 +160,12 @@ export function buildPlanComparisonRows(inputs: {
 
 export function computeTimeline(inputs: {
   shipDate: Date;
-  arrivalOverride: Date | null;
   oneWayShippingBusinessDays: number;
   plan: GradingPlan;
 }): TimelineResult | null {
   const { shipDate, plan } = inputs;
   const shared = computeSharedTimelineBase({
     shipDate,
-    arrivalOverride: inputs.arrivalOverride,
     oneWayShippingBusinessDays: inputs.oneWayShippingBusinessDays,
   });
   const slice = computePlanTimelineSlice(shared, plan);
