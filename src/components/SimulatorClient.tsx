@@ -7,6 +7,7 @@ import {
   formatDateShortJa,
   parseInputDate,
 } from "@/lib/dateParse";
+import { formatAmountFromDigits, stripAmountCommas } from "@/lib/amountInput";
 import { buildPlanComparisonRows } from "@/lib/simulatorCalculations";
 import type { PlanComparisonRow } from "@/lib/simulatorCalculations";
 
@@ -44,7 +45,9 @@ export function SimulatorClient() {
   const [commissionRate, setCommissionRate] = useState<string>(
     RESET_INPUTS.commissionRate,
   );
-  const [otherCost, setOtherCost] = useState<string>(RESET_INPUTS.otherCost);
+  const [otherCost, setOtherCost] = useState<string>(() =>
+    formatAmountFromDigits(RESET_INPUTS.otherCost),
+  );
   const [shipDateStr, setShipDateStr] = useState<string>(
     RESET_INPUTS.shipDateStr,
   );
@@ -56,7 +59,7 @@ export function SimulatorClient() {
     setPurchase(RESET_INPUTS.purchase);
     setSalePrice(RESET_INPUTS.salePrice);
     setCommissionRate(RESET_INPUTS.commissionRate);
-    setOtherCost(RESET_INPUTS.otherCost);
+    setOtherCost(formatAmountFromDigits(RESET_INPUTS.otherCost));
     setShipDateStr(RESET_INPUTS.shipDateStr);
     setOneWayBizDays(RESET_INPUTS.oneWayBizDays);
   }
@@ -73,7 +76,7 @@ export function SimulatorClient() {
 
   /** PSA10想定販売額（数値として解釈できた場合のみ） */
   const saleYenParsed = useMemo((): number | null => {
-    const t = salePrice.trim();
+    const t = stripAmountCommas(salePrice);
     if (t === "") return null;
     const n = Number(t);
     return Number.isFinite(n) ? n : null;
@@ -163,13 +166,15 @@ export function SimulatorClient() {
             </label>
             <input
               id="purchase"
-              type="number"
-              inputMode="decimal"
-              min={0}
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
               className={inputClass}
-              placeholder="例: 50000"
+              placeholder="例: 50,000"
               value={purchase}
-              onChange={(e) => setPurchase(e.target.value)}
+              onChange={(e) =>
+                setPurchase(formatAmountFromDigits(e.target.value))
+              }
             />
           </div>
           <div>
@@ -178,13 +183,15 @@ export function SimulatorClient() {
             </label>
             <input
               id="sale"
-              type="number"
-              inputMode="decimal"
-              min={0}
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
               className={inputClass}
-              placeholder="例: 120000"
+              placeholder="例: 120,000"
               value={salePrice}
-              onChange={(e) => setSalePrice(e.target.value)}
+              onChange={(e) =>
+                setSalePrice(formatAmountFromDigits(e.target.value))
+              }
             />
           </div>
           <div>
@@ -207,13 +214,15 @@ export function SimulatorClient() {
             </label>
             <input
               id="other"
-              type="number"
-              inputMode="decimal"
-              min={0}
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
               className={inputClass}
-              placeholder="例: 2000"
+              placeholder="例: 2,000"
               value={otherCost}
-              onChange={(e) => setOtherCost(e.target.value)}
+              onChange={(e) =>
+                setOtherCost(formatAmountFromDigits(e.target.value))
+              }
             />
           </div>
           <div>

@@ -31,7 +31,7 @@ export type ProfitResult = {
 };
 
 function safeNumber(raw: string): number | null {
-  const t = raw.trim();
+  const t = raw.replace(/,/g, "").trim();
   if (t === "") return null;
   const n = Number(t);
   if (!Number.isFinite(n)) return null;

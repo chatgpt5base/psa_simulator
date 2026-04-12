@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PSA鑑定 利益シミュレーター",
   description:
-    "ポケモンカードのPSA鑑定における仕入れ・鑑定費用・想定販売額から利益と返却目安を試算するツール",
+    "PSA鑑定における仕入れ・鑑定費用・想定販売額から利益と返却目安を試算するツール",
 };
 
 export default function RootLayout({
