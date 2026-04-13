@@ -273,7 +273,7 @@ export function SimulatorClient() {
     };
 
   const inputClass =
-    "mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-100 outline-none ring-amber-200/30 transition placeholder:text-zinc-500 focus:border-amber-200/40 focus:ring-2";
+    "mt-1.5 w-full min-w-0 max-w-full box-border rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-100 outline-none ring-amber-200/30 transition placeholder:text-zinc-500 focus:border-amber-200/40 focus:ring-2";
 
   const labelClass = "text-xs font-medium tracking-wide text-zinc-400";
 
@@ -299,7 +299,7 @@ export function SimulatorClient() {
           日付は土日と日本の祝日（振替休日・国民の休日を含む）を除く営業日で計算します。
         </p>
 
-        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
           <div>
             <label className={labelClass} htmlFor="purchase">
               仕入れ額（円）
