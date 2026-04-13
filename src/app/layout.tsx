@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   description:
     "PSA鑑定における仕入れ・鑑定費用・想定販売額から利益と返却目安を試算するツール",
   verification: {
-    google: "JRZ9eg8hLf47IzrGMS0ee_ZPZm-hqc-Zu9Nf4fsuqyw",
+    google: "Jx-L2D2_35LL1wEi5EGjeTmOMrxejGENDz07pUmElqg",
   },
 };
 
