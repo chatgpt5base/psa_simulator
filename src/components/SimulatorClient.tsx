@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import { exceedsDeclaredValueMax, gradingPlans } from "@/lib/gradingPlans";
 import {
@@ -24,7 +25,154 @@ function pctFormat(n: number): string {
   }).format(n);
 }
 
-/** リセット時・未選択時の片道配送日数（空欄） */
+/** Daily profit = profit / plan turnaroundDays (business days). */
+const dailyYen = new Intl.NumberFormat("ja-JP", {
+  style: "currency",
+  currency: "JPY",
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 0,
+});
+
+function formatDailyProfit(
+  profit: number | null,
+  turnaroundDays: number,
+): string {
+  if (profit === null || turnaroundDays <= 0) return "—";
+  return `${dailyYen.format(profit / turnaroundDays)}/日`;
+}
+
+function formatDailyEfficiency(
+  profit: number | null,
+  totalCost: number | null,
+  turnaroundDays: number,
+): string {
+  if (profit === null || totalCost === null || totalCost <= 0 || turnaroundDays <= 0) {
+    return "—";
+  }
+  const efficiencyPerDay = ((profit / totalCost) / turnaroundDays) * 100;
+  return `${pctFormat(efficiencyPerDay)}%/日`;
+}
+
+/** 申告上限内かつ想定利益がプラスのプランのみ戦略判定に含める */
+function strategyEligible(
+  r: PlanComparisonRow,
+  saleYenParsed: number | null,
+): boolean {
+  return (
+    r.profit !== null &&
+    !exceedsDeclaredValueMax(saleYenParsed, r.plan) &&
+    r.profit.profit >= 0
+  );
+}
+
+type StrategyFlags = {
+  profit: boolean;
+  speed: boolean;
+  balance: boolean;
+};
+
+function computeStrategyFlagsByPlanId(
+  rows: PlanComparisonRow[],
+  saleYenParsed: number | null,
+): Map<string, StrategyFlags> {
+  const eligible = rows.filter((r) => strategyEligible(r, saleYenParsed));
+  const result = new Map<string, StrategyFlags>();
+  for (const r of rows) {
+    result.set(r.plan.id, { profit: false, speed: false, balance: false });
+  }
+  if (eligible.length === 0) return result;
+
+  let maxProfit = -Infinity;
+  for (const r of eligible) {
+    maxProfit = Math.max(maxProfit, r.profit!.profit);
+  }
+  for (const r of eligible) {
+    if (r.profit!.profit === maxProfit) {
+      result.get(r.plan.id)!.profit = true;
+    }
+  }
+
+  const nearEqual = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+
+  /** スピード重視: 日次利益（想定利益÷所要営業日）が最大 */
+  let maxDailyProfit = -Infinity;
+  for (const r of eligible) {
+    if (r.plan.turnaroundDays <= 0) continue;
+    maxDailyProfit = Math.max(
+      maxDailyProfit,
+      r.profit!.profit / r.plan.turnaroundDays,
+    );
+  }
+  for (const r of eligible) {
+    if (r.plan.turnaroundDays <= 0) continue;
+    if (nearEqual(r.profit!.profit / r.plan.turnaroundDays, maxDailyProfit)) {
+      result.get(r.plan.id)!.speed = true;
+    }
+  }
+
+  /** バランス重視: 日利効率（(想定利益÷総コスト)÷所要営業日）が最大 */
+  let maxEfficiency = -Infinity;
+  for (const r of eligible) {
+    const tc = r.profit!.totalCost;
+    if (tc <= 0 || r.plan.turnaroundDays <= 0) continue;
+    maxEfficiency = Math.max(
+      maxEfficiency,
+      (r.profit!.profit / tc) / r.plan.turnaroundDays,
+    );
+  }
+  for (const r of eligible) {
+    const tc = r.profit!.totalCost;
+    if (tc <= 0 || r.plan.turnaroundDays <= 0) continue;
+    if (nearEqual((r.profit!.profit / tc) / r.plan.turnaroundDays, maxEfficiency)) {
+      result.get(r.plan.id)!.balance = true;
+    }
+  }
+
+  return result;
+}
+
+function strategyRowHighlightStyle(flags: StrategyFlags): CSSProperties | undefined {
+  const layers: string[] = [];
+  if (flags.profit) layers.push("rgba(251, 191, 36, 0.09)");
+  if (flags.speed) layers.push("rgba(56, 189, 248, 0.09)");
+  if (flags.balance) layers.push("rgba(167, 139, 250, 0.09)");
+  if (layers.length === 0) return undefined;
+  if (layers.length === 1) return { backgroundColor: layers[0] };
+  return {
+    background: `linear-gradient(120deg, ${layers.join(", ")})`,
+  };
+}
+
+function StrategyBadges({
+  flags,
+  className = "",
+}: {
+  flags: StrategyFlags;
+  className?: string;
+}) {
+  if (!flags.profit && !flags.speed && !flags.balance) return null;
+  return (
+    <span className={["flex gap-1", className].filter(Boolean).join(" ")}>
+      {flags.profit && (
+        <span className="shrink-0 rounded-full border border-amber-300/45 bg-amber-400/20 px-1.5 py-px text-[10px] font-semibold text-amber-100">
+          利益重視
+        </span>
+      )}
+      {flags.speed && (
+        <span className="shrink-0 rounded-full border border-sky-400/45 bg-sky-500/20 px-1.5 py-px text-[10px] font-semibold text-sky-100">
+          スピード重視
+        </span>
+      )}
+      {flags.balance && (
+        <span className="shrink-0 rounded-full border border-violet-400/45 bg-violet-500/20 px-1.5 py-px text-[10px] font-semibold text-violet-100">
+          バランス重視
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** リセット時・未選択時の片道配送日数（空） */
 const ONE_WAY_EMPTY = "";
 
 const RESET_INPUTS = {
@@ -112,27 +260,22 @@ export function SimulatorClient() {
     return copy;
   }, [rows]);
 
-  const maxProfitValue = useMemo(() => {
-    let m = -Infinity;
-    for (const r of rows) {
-      if (exceedsDeclaredValueMax(saleYenParsed, r.plan)) continue;
-      if (r.profit === null || r.profit.profit < 0) continue;
-      if (r.profit.profit > m) m = r.profit.profit;
-    }
-    return Number.isFinite(m) ? m : null;
-  }, [rows, saleYenParsed]);
+  const strategyFlagsByPlanId = useMemo(
+    () => computeStrategyFlagsByPlanId(rows, saleYenParsed),
+    [rows, saleYenParsed],
+  );
+
+  const rowStrategyFlags = (r: PlanComparisonRow): StrategyFlags =>
+    strategyFlagsByPlanId.get(r.plan.id) ?? {
+      profit: false,
+      speed: false,
+      balance: false,
+    };
 
   const inputClass =
     "mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-100 outline-none ring-amber-200/30 transition placeholder:text-zinc-500 focus:border-amber-200/40 focus:ring-2";
 
   const labelClass = "text-xs font-medium tracking-wide text-zinc-400";
-
-  const isTopProfit = (r: PlanComparisonRow) =>
-    !exceedsDeclaredValueMax(saleYenParsed, r.plan) &&
-    r.profit !== null &&
-    r.profit.profit >= 0 &&
-    maxProfitValue !== null &&
-    r.profit.profit === maxProfitValue;
 
   /** 申告上限超過、または想定利益がマイナス */
   const rowGrayed = (r: PlanComparisonRow) =>
@@ -142,10 +285,7 @@ export function SimulatorClient() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
       <header className="mb-10 text-center sm:mb-12">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200/80">
-          TCG Card
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
           PSA鑑定 利益シミュレーター
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-zinc-400">
@@ -325,98 +465,162 @@ export function SimulatorClient() {
             <h2 className="text-sm font-semibold text-zinc-200">
               プラン別比較
             </h2>
-            <p className="mt-1 text-xs text-zinc-500">
-              収支欄が揃うと、想定利益の高い順に並べ替えます。同率1位はすべてハイライトします。
-              申告価格上限超過、または想定利益がマイナスのプランはグレー表示です。
-            </p>
+            <div className="mt-2 space-y-2 text-xs text-zinc-500">
+              <p>
+                収支欄が揃うと、想定利益の高い順に並べ替えます。申告価格上限超過、または想定利益がマイナスのプランはグレー表示です。
+              </p>
+              <p>
+                日次利益は想定利益を、納期にあたる所要営業日で割った値です。
+                日利効率は（想定利益 ÷（仕入れ額 + その他費用 + 鑑定料））÷ 所要営業日です。
+              </p>
+              <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2.5 text-[11px] leading-relaxed">
+                <p className="font-medium text-zinc-400">鑑定戦略ラベル（申告上限内かつ想定利益がプラスのプランのみ対象）</p>
+                <ul className="mt-2 list-inside list-disc space-y-1.5 marker:text-zinc-600">
+                  <li>
+                    <span className="font-medium text-amber-200/90">利益重視</span>
+                    ：指標は想定利益が最大のプランに付与します（同率のときは複数に付きます）。
+                  </li>
+                  <li>
+                    <span className="font-medium text-sky-200/90">スピード重視</span>
+                    ：指標は日次利益（想定利益÷所要営業日）が最大のプランに付与します（同率のときは複数に付きます）。
+                  </li>
+                  <li>
+                    <span className="font-medium text-violet-200/90">バランス重視</span>
+                    ：指標は日利効率（（想定利益÷総コスト）÷所要営業日）が最大のプランに付与します（同率のときは複数に付きます）。
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* モバイル: カード一覧 */}
         <div className="mt-6 space-y-3 lg:hidden">
-          {sortedRows.map((r) => (
-            <div
-              key={r.plan.id}
-              className={`rounded-xl border px-4 py-4 ${
-                rowGrayed(r)
-                  ? "border-white/5 bg-black/[0.12] opacity-[0.42]"
-                  : isTopProfit(r)
-                    ? "border-amber-200/40 bg-amber-200/[0.07]"
-                    : "border-white/10 bg-black/20"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium text-zinc-100">{r.plan.name}</p>
-                  <p className="mt-0.5 text-[10px] leading-snug text-zinc-500">
-                    申告価格 {r.plan.declaredValueLabel}
-                  </p>
-                  <p className="mt-0.5 text-xs text-zinc-500">
-                    鑑定料 {yen.format(r.plan.fee)} ・ 約
-                    {r.plan.turnaroundDays}営業日
-                  </p>
+          {sortedRows.map((r) => {
+            const f = rowStrategyFlags(r);
+            const hasStrategy =
+              !rowGrayed(r) && (f.profit || f.speed || f.balance);
+            return (
+              <div
+                key={r.plan.id}
+                className={`rounded-xl border px-4 py-4 ${
+                  rowGrayed(r)
+                    ? "border-white/5 bg-black/[0.12] opacity-[0.42]"
+                    : hasStrategy
+                      ? "border-white/15"
+                      : "border-white/10 bg-black/20"
+                }`}
+                style={
+                  !rowGrayed(r) ? strategyRowHighlightStyle(f) : undefined
+                }
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-zinc-100">{r.plan.name}</p>
+                    <p className="mt-0.5 text-[10px] leading-snug text-zinc-500">
+                      申告価格 {r.plan.declaredValueLabel}
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                     鑑定料 {yen.format(r.plan.fee)} ・ 約
+                      {r.plan.turnaroundDays}営業日
+                    </p>
+                  </div>
+                  <StrategyBadges
+                    flags={f}
+                    className="shrink-0 flex-row flex-wrap items-center justify-end"
+                  />
                 </div>
-                {isTopProfit(r) && r.profit !== null && (
-                  <span className="shrink-0 rounded-full border border-amber-200/30 bg-amber-200/15 px-2 py-0.5 text-[10px] font-semibold text-amber-100">
-                    利益最大
-                  </span>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <p className="text-zinc-500">想定利益</p>
+                    <p
+                      className={`mt-0.5 font-semibold tabular-nums ${
+                        r.profit === null
+                          ? "text-zinc-500"
+                          : r.profit.profit >= 0
+                            ? "text-emerald-300"
+                            : "text-rose-300"
+                      }`}
+                    >
+                      {r.profit === null ? "—" : yen.format(r.profit.profit)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500">日次利益</p>
+                    <p
+                      className={`mt-0.5 font-semibold tabular-nums ${
+                        r.profit === null
+                          ? "text-zinc-500"
+                          : r.profit.profit >= 0
+                            ? "text-emerald-300"
+                            : "text-rose-300"
+                      }`}
+                    >
+                      {formatDailyProfit(
+                        r.profit?.profit ?? null,
+                        r.plan.turnaroundDays,
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500">日利効率</p>
+                    <p
+                      className={`mt-0.5 font-semibold tabular-nums ${
+                        r.profit === null
+                          ? "text-zinc-500"
+                          : r.profit.profit >= 0
+                            ? "text-emerald-300"
+                            : "text-rose-300"
+                      }`}
+                    >
+                      {formatDailyEfficiency(
+                        r.profit?.profit ?? null,
+                        r.profit?.totalCost ?? null,
+                        r.plan.turnaroundDays,
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-zinc-500">粗利率</p>
+                    <p className="mt-0.5 font-medium tabular-nums text-zinc-200">
+                      {r.profit?.marginPercent === undefined ||
+                      r.profit?.marginPercent === null
+                        ? "—"
+                        : `${pctFormat(r.profit.marginPercent)}%`}
+                    </p>
+                  </div>
+                </div>
+                {r.timeline && shipDate && oneWayShippingBusinessDays !== null ? (
+                  <div className="mt-3 border-t border-white/10 pt-3 text-[11px] text-zinc-400">
+                    <p>
+                      返却（短）{" "}
+                      <span className="text-zinc-200">
+                        {formatDateShortJa(r.timeline.returnEarliest)}
+                      </span>
+                    </p>
+                    <p className="mt-1">
+                      返却（長）{" "}
+                      <span className="text-zinc-200">
+                        {formatDateShortJa(r.timeline.returnLatest)}
+                      </span>
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-3 border-t border-white/10 pt-3 text-[11px] text-zinc-500">
+                    発送日と片道配送日数を入れると返却目安が表示されます。
+                  </p>
                 )}
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <p className="text-zinc-500">想定利益</p>
-                  <p
-                    className={`mt-0.5 font-semibold tabular-nums ${
-                      r.profit === null
-                        ? "text-zinc-500"
-                        : r.profit.profit >= 0
-                          ? "text-emerald-300"
-                          : "text-rose-300"
-                    }`}
-                  >
-                    {r.profit === null ? "—" : yen.format(r.profit.profit)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-zinc-500">粗利率</p>
-                  <p className="mt-0.5 font-medium tabular-nums text-zinc-200">
-                    {r.profit?.marginPercent === undefined ||
-                    r.profit?.marginPercent === null
-                      ? "—"
-                      : `${pctFormat(r.profit.marginPercent)}%`}
-                  </p>
-                </div>
-              </div>
-              {r.timeline && shipDate && oneWayShippingBusinessDays !== null ? (
-                <div className="mt-3 border-t border-white/10 pt-3 text-[11px] text-zinc-400">
-                  <p>
-                    返却（短）{" "}
-                    <span className="text-zinc-200">
-                      {formatDateShortJa(r.timeline.returnEarliest)}
-                    </span>
-                  </p>
-                  <p className="mt-1">
-                    返却（長）{" "}
-                    <span className="text-zinc-200">
-                      {formatDateShortJa(r.timeline.returnLatest)}
-                    </span>
-                  </p>
-                </div>
-              ) : (
-                <p className="mt-3 border-t border-white/10 pt-3 text-[11px] text-zinc-500">
-                  発送日と片道配送日数を入れると返却目安が表示されます。
-                </p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* デスクトップ: 表 */}
         <div className="mt-6 hidden overflow-x-auto lg:block">
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[980px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-white/10 text-xs text-zinc-500">
-                <th className="sticky left-0 z-10 bg-zinc-950/95 py-3 pr-4 font-medium backdrop-blur-sm">
+                <th className="sticky left-0 z-10 min-w-[220px] bg-zinc-950/95 py-3 pr-4 font-medium backdrop-blur-sm">
                   プラン
                 </th>
                 <th className="whitespace-nowrap py-3 pr-4 font-medium">
@@ -427,6 +631,18 @@ export function SimulatorClient() {
                 </th>
                 <th className="whitespace-nowrap py-3 pr-4 font-medium">
                   想定利益
+                </th>
+                <th
+                  className="whitespace-nowrap py-3 pr-4 font-medium"
+                  title="想定利益÷所要営業日（納期）"
+                >
+                  日次利益
+                </th>
+                <th
+                  className="whitespace-nowrap py-3 pr-4 font-medium"
+                  title="（想定利益 ÷（仕入れ額 + その他費用 + 鑑定料））÷ 所要営業日"
+                >
+                  日利効率
                 </th>
                 <th className="whitespace-nowrap py-3 pr-4 font-medium">
                   粗利率
@@ -440,37 +656,44 @@ export function SimulatorClient() {
               </tr>
             </thead>
             <tbody>
-              {sortedRows.map((r) => (
-                <tr
-                  key={r.plan.id}
-                  className={`border-b border-white/5 ${
-                    rowGrayed(r)
-                      ? "opacity-[0.42]"
-                      : isTopProfit(r)
-                        ? "bg-amber-200/[0.06]"
-                        : ""
-                  }`}
-                >
+              {sortedRows.map((r) => {
+                const f = rowStrategyFlags(r);
+                const hasStrategy =
+                  !rowGrayed(r) && (f.profit || f.speed || f.balance);
+                return (
+                  <tr
+                    key={r.plan.id}
+                    className={`border-b border-white/5 ${
+                      rowGrayed(r) ? "opacity-[0.42]" : ""
+                    }`}
+                    style={
+                      !rowGrayed(r) ? strategyRowHighlightStyle(f) : undefined
+                    }
+                  >
                   <td
-                    className={`sticky left-0 z-10 py-3 pr-4 font-medium backdrop-blur-sm ${
+                    className={`sticky left-0 z-10 min-w-[220px] pl-2 py-3 pr-4 font-medium backdrop-blur-sm ${
                       rowGrayed(r)
                         ? "border-white/5 bg-zinc-950/90"
-                        : isTopProfit(r)
-                          ? "border-amber-200/20 bg-zinc-950/90"
+                        : hasStrategy
+                          ? "border-white/10 !bg-transparent"
                           : "bg-zinc-950/90"
                     }`}
+                    style={
+                      !rowGrayed(r) ? strategyRowHighlightStyle(f) : undefined
+                    }
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-zinc-100">{r.plan.name}</span>
-                      {isTopProfit(r) && r.profit !== null && (
-                        <span className="shrink-0 rounded-full border border-amber-200/35 bg-amber-200/10 px-1.5 py-px text-[10px] font-semibold text-amber-100">
-                          利益最大
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 pr-2">
+                        <span className="block text-zinc-100">{r.plan.name}</span>
+                        <span className="mt-0.5 block text-[10px] leading-snug text-zinc-500">
+                          申告価格 {r.plan.declaredValueLabel}
                         </span>
-                      )}
+                      </div>
+                      <StrategyBadges
+                        flags={f}
+                        className="shrink-0 flex-col items-end justify-start"
+                      />
                     </div>
-                    <span className="mt-0.5 block text-[10px] leading-snug text-zinc-500">
-                      申告価格 {r.plan.declaredValueLabel}
-                    </span>
                   </td>
                   <td className="whitespace-nowrap py-3 pr-4 tabular-nums text-zinc-300">
                     {yen.format(r.plan.fee)}
@@ -489,6 +712,35 @@ export function SimulatorClient() {
                   >
                     {r.profit === null ? "—" : yen.format(r.profit.profit)}
                   </td>
+                  <td
+                    className={`whitespace-nowrap py-3 pr-4 font-semibold tabular-nums ${
+                      r.profit === null
+                        ? "text-zinc-500"
+                        : r.profit.profit >= 0
+                          ? "text-emerald-300"
+                          : "text-rose-300"
+                    }`}
+                  >
+                    {formatDailyProfit(
+                      r.profit?.profit ?? null,
+                      r.plan.turnaroundDays,
+                    )}
+                  </td>
+                  <td
+                    className={`whitespace-nowrap py-3 pr-4 font-semibold tabular-nums ${
+                      r.profit === null
+                        ? "text-zinc-500"
+                        : r.profit.profit >= 0
+                          ? "text-emerald-300"
+                          : "text-rose-300"
+                    }`}
+                  >
+                    {formatDailyEfficiency(
+                      r.profit?.profit ?? null,
+                      r.profit?.totalCost ?? null,
+                      r.plan.turnaroundDays,
+                    )}
+                  </td>
                   <td className="whitespace-nowrap py-3 pr-4 tabular-nums text-zinc-300">
                     {r.profit === null || r.profit.marginPercent === null
                       ? "—"
@@ -505,7 +757,8 @@ export function SimulatorClient() {
                       : "—"}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
