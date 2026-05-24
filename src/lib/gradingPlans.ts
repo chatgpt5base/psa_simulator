@@ -10,6 +10,10 @@ export type GradingPlan = {
   maxDeclaredValueYen: number | null;
   fee: number;
   turnaroundDays: number;
+  /** 受付停止中のプラン（比較表ではグレー表示・戦略判定対象外） */
+  suspended?: boolean;
+  /** サービスレベル改定で予定納期が変更されたプラン（赤文字表示） */
+  turnaroundDaysRevised?: boolean;
 };
 
 /** PSA10想定販売額が当該プランの申告上限を超えるか（入力が無効・空のときは false） */
@@ -34,6 +38,7 @@ export const gradingPlans: GradingPlan[] = [
     maxDeclaredValueYen: 80_000,
     fee: 3980,
     turnaroundDays: 120,
+    suspended: true,
   },
   {
     id: "value",
@@ -41,7 +46,8 @@ export const gradingPlans: GradingPlan[] = [
     declaredValueLabel: "¥80,000以下",
     maxDeclaredValueYen: 80_000,
     fee: 4980,
-    turnaroundDays: 90,
+    turnaroundDays: 160,
+    turnaroundDaysRevised: true,
   },
   {
     id: "value-plus",
@@ -50,6 +56,7 @@ export const gradingPlans: GradingPlan[] = [
     maxDeclaredValueYen: 80_000,
     fee: 7980,
     turnaroundDays: 60,
+    suspended: true,
   },
   {
     id: "value-max",
@@ -58,6 +65,7 @@ export const gradingPlans: GradingPlan[] = [
     maxDeclaredValueYen: 150_000,
     fee: 8980,
     turnaroundDays: 40,
+    suspended: true,
   },
   {
     id: "regular",
@@ -65,7 +73,8 @@ export const gradingPlans: GradingPlan[] = [
     declaredValueLabel: "¥250,000以下",
     maxDeclaredValueYen: 250_000,
     fee: 11980,
-    turnaroundDays: 30,
+    turnaroundDays: 60,
+    turnaroundDaysRevised: true,
   },
   {
     id: "express",

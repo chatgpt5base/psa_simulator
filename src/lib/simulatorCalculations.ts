@@ -1,11 +1,15 @@
 import { addBusinessDaysAfter } from "./businessDays";
 import type { GradingPlan } from "./gradingPlans";
 
-/** プランに依存しない到着〜受付開始まで（到着は発送日+片道配送日数で推定） */
+/** PSA到着から荷物到着のお知らせ（予定納期カウント開始）までの目安（営業日） */
+export const ARRIVAL_NOTIFICATION_BUSINESS_DAYS_MIN = 20;
+export const ARRIVAL_NOTIFICATION_BUSINESS_DAYS_MAX = 30;
+
+/** プランに依存しない到着〜予定納期カウント開始まで */
 export type SharedTimelineBase = {
   effectiveArrival: Date;
-  receptionEarliest: Date;
-  receptionLatest: Date;
+  countdownStartEarliest: Date;
+  countdownStartLatest: Date;
 };
 
 export type PlanTimelineSlice = {
@@ -18,7 +22,7 @@ export type TimelineResult = SharedTimelineBase & PlanTimelineSlice;
 export type PlanComparisonRow = {
   plan: GradingPlan;
   profit: ProfitResult | null;
-  /** 発送日未入力時は null */
+  /** 発送日・片道配送日数未入力時は null */
   timeline: PlanTimelineSlice | null;
 };
 
@@ -77,13 +81,19 @@ export function computeSharedTimelineBase(inputs: {
   const oneWay = Math.max(0, Math.floor(inputs.oneWayShippingBusinessDays));
 
   const effectiveArrival = addBusinessDaysAfter(shipDate, oneWay);
-  const receptionEarliest = addBusinessDaysAfter(effectiveArrival, 10);
-  const receptionLatest = addBusinessDaysAfter(effectiveArrival, 20);
+  const countdownStartEarliest = addBusinessDaysAfter(
+    effectiveArrival,
+    ARRIVAL_NOTIFICATION_BUSINESS_DAYS_MIN,
+  );
+  const countdownStartLatest = addBusinessDaysAfter(
+    effectiveArrival,
+    ARRIVAL_NOTIFICATION_BUSINESS_DAYS_MAX,
+  );
 
   return {
     effectiveArrival,
-    receptionEarliest,
-    receptionLatest,
+    countdownStartEarliest,
+    countdownStartLatest,
   };
 }
 
@@ -92,11 +102,11 @@ export function computePlanTimelineSlice(
   plan: GradingPlan,
 ): PlanTimelineSlice {
   const returnEarliest = addBusinessDaysAfter(
-    base.receptionEarliest,
+    base.countdownStartEarliest,
     plan.turnaroundDays,
   );
   const returnLatest = addBusinessDaysAfter(
-    base.receptionLatest,
+    base.countdownStartLatest,
     plan.turnaroundDays,
   );
   return {

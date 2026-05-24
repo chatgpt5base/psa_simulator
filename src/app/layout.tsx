@@ -38,6 +38,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
+        <p className="pointer-events-none fixed top-4 right-4 z-50 text-[11px] tabular-nums text-zinc-500 sm:top-5 sm:right-6">
+          更新日：2026年5月25日
+        </p>
         <noscript>
           <iframe
             src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
