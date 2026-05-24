@@ -509,6 +509,8 @@ export function SimulatorClient() {
   const inputClass =
     "mt-1.5 w-full min-w-0 max-w-full box-border rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-100 outline-none ring-amber-200/30 transition placeholder:text-zinc-500 focus:border-amber-200/40 focus:ring-2";
 
+  const dateInputClass = `${inputClass} block min-w-0 appearance-none`;
+
   const labelClass = "text-xs font-medium tracking-wide text-zinc-400";
 
   /** 受付停止中、申告上限超過、または想定利益がマイナス */
@@ -518,7 +520,10 @@ export function SimulatorClient() {
     (r.profit !== null && r.profit.profit < 0);
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+    <div className="mx-auto w-full max-w-6xl overflow-x-clip px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <p className="mb-6 text-right text-[11px] tabular-nums text-zinc-500">
+        更新日：2026年5月25日
+      </p>
       <header className="mb-10 text-center sm:mb-12">
         <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
           PSA鑑定 利益シミュレーター
@@ -528,7 +533,7 @@ export function SimulatorClient() {
         </p>
       </header>
 
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.65)] backdrop-blur-md sm:p-8">
+      <section className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.65)] backdrop-blur-md sm:p-8">
         <h2 className="text-sm font-semibold text-zinc-200">入力</h2>
         <p className="mt-1 text-xs text-zinc-500">
           日付は土日と日本の祝日（振替休日・国民の休日を含む）を除く営業日で計算します。
@@ -606,14 +611,14 @@ export function SimulatorClient() {
               （例）PSAの保険料、事務手数料、送料など
             </p>
           </div>
-          <div>
+          <div className="min-w-0 max-w-full overflow-hidden">
             <label className={labelClass} htmlFor="ship">
               発送日
             </label>
             <input
               id="ship"
               type="date"
-              className={inputClass}
+              className={dateInputClass}
               value={shipDateStr}
               onChange={(e) => setShipDateStr(e.target.value)}
             />
@@ -720,26 +725,26 @@ export function SimulatorClient() {
             </h2>
             <div className="mt-2 space-y-2 text-xs text-zinc-500">
               <p>
-                収支欄が揃うと、想定利益の高い順に並べ替えます。受付停止中、申告価格上限超過、または想定利益がマイナスのプランはグレー表示です。
+                受付停止中、申告価格上限超過、または想定利益がマイナスのプランはグレー表示です。
               </p>
               <p>
                 日次利益は想定利益を、予定納期で割った値です。
                 日利効率は（想定利益 ÷（仕入れ額 + その他費用 + 鑑定料））÷ 予定納期です。
               </p>
               <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2.5 text-[11px] leading-relaxed">
-                <p className="font-medium text-zinc-400">鑑定戦略ラベル（申告上限内かつ想定利益がプラスのプランのみ対象）</p>
+                <p className="font-medium text-zinc-400">鑑定戦略</p>
                 <ul className="mt-2 list-inside list-disc space-y-1.5 marker:text-zinc-600">
                   <li>
                     <span className="font-medium text-amber-200/90">利益重視</span>
-                    ：指標は想定利益が最大のプランに付与します（同率のときは複数に付きます）。
+                    ：想定利益が最大のプランに付与します（同率のときは複数に付きます）。
                   </li>
                   <li>
                     <span className="font-medium text-sky-200/90">スピード重視</span>
-                    ：指標は日次利益（想定利益÷予定納期）が最大のプランに付与します（同率のときは複数に付きます）。
+                    ：日次利益（想定利益÷予定納期）が最大のプランに付与します（同率のときは複数に付きます）。
                   </li>
                   <li>
                     <span className="font-medium text-violet-200/90">バランス重視</span>
-                    ：指標は日利効率（（想定利益÷総コスト）÷予定納期）が最大のプランに付与します（同率のときは複数に付きます）。
+                    ：日利効率（（想定利益÷総コスト）÷予定納期）が最大のプランに付与します（同率のときは複数に付きます）。
                   </li>
                 </ul>
               </div>
