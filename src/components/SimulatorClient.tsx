@@ -431,7 +431,7 @@ const RESET_INPUTS = {
 /** 初回表示のデフォルト */
 const DEFAULT_ONE_WAY_BIZ_DAYS = "2";
 
-const ONE_WAY_BIZ_DAY_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 1);
+const ONE_WAY_BIZ_DAY_OPTIONS = Array.from({ length: 7 }, (_, i) => i + 1);
 
 export function SimulatorClient() {
   const [purchase, setPurchase] = useState<string>(RESET_INPUTS.purchase);
@@ -530,7 +530,7 @@ export function SimulatorClient() {
 
   const inputClassWithUnit = `${inputFieldClass} pr-10`;
 
-  const dateInputClass = `${inputClass} block min-w-0`;
+  const dateInputClass = `${inputFieldClass} sim-date-input`;
 
   const labelClass = "text-xs font-medium tracking-wide text-zinc-400";
 
@@ -551,13 +551,13 @@ export function SimulatorClient() {
         </p>
       </header>
 
-      <section className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.65)] backdrop-blur-md sm:p-8">
+      <section className="min-w-0 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_24px_80px_-24px_rgba(0,0,0,0.65)] backdrop-blur-md sm:p-8">
         <h2 className="text-sm font-semibold text-zinc-200">入力</h2>
         <p className="mt-1 text-xs text-zinc-500">
           日付は土日と日本の祝日（振替休日・国民の休日を含む）を除く営業日で計算します。
         </p>
 
-        <div className="mt-6 grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
+        <div className="mt-6 grid w-full min-w-0 grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
           <div>
             <label className={labelClass} htmlFor="purchase">
               仕入れ額
@@ -637,17 +637,19 @@ export function SimulatorClient() {
               （例）PSAの保険料、事務手数料、送料など
             </p>
           </div>
-          <div className="min-w-0 max-w-full overflow-hidden">
+          <div className="min-w-0 w-full">
             <label className={labelClass} htmlFor="ship">
               発送日
             </label>
-            <input
-              id="ship"
-              type="date"
-              className={dateInputClass}
-              value={shipDateStr}
-              onChange={(e) => setShipDateStr(e.target.value)}
-            />
+            <div className="mt-1.5 min-w-0 w-full overflow-hidden">
+              <input
+                id="ship"
+                type="date"
+                className={dateInputClass}
+                value={shipDateStr}
+                onChange={(e) => setShipDateStr(e.target.value)}
+              />
+            </div>
             <p className="mt-1.5 text-[11px] leading-snug text-zinc-500">
               PSA到着は「発送日 + 片道配送日数」で推定します。
             </p>
