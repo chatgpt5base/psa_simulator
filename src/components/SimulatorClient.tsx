@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useMemo, useState } from "react";
 import {
   exceedsDeclaredValueMax,
@@ -251,26 +251,24 @@ function MobilePlanCard({
       style={!grayed && !hideHeader ? strategyRowHighlightStyle(flags) : undefined}
     >
       {!hideHeader && (
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <p className="font-medium text-zinc-100">{row.plan.name}</p>
-              {row.plan.suspended && <SuspendedBadge />}
-            </div>
-            <p className="mt-0.5 text-[10px] leading-snug text-zinc-500">
-              申告価格 {row.plan.declaredValueLabel}
-            </p>
-            <p className="mt-0.5 text-xs text-zinc-500">
-              鑑定料 {yen.format(row.plan.fee)} ・{" "}
-              <span className={turnaroundDaysClassName(row.plan)}>
-                {formatTurnaroundDaysLabel(row.plan.turnaroundDays)}
-              </span>
-            </p>
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="font-medium text-zinc-100">{row.plan.name}</p>
+            {row.plan.suspended && <SuspendedBadge />}
           </div>
           <StrategyBadges
             flags={flags}
-            className="shrink-0 flex-row flex-wrap items-center justify-end"
+            className="mt-1.5 flex-row flex-wrap items-center gap-1"
           />
+          <p className="mt-1.5 text-[10px] leading-snug text-zinc-500">
+            申告価格 {row.plan.declaredValueLabel}
+          </p>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            鑑定料 {yen.format(row.plan.fee)} ・{" "}
+            <span className={turnaroundDaysClassName(row.plan)}>
+              {formatTurnaroundDaysLabel(row.plan.turnaroundDays)}
+            </span>
+          </p>
         </div>
       )}
       {hideHeader && (
@@ -382,6 +380,23 @@ function buildMobilePlanSegments(rows: PlanComparisonRow[]): MobilePlanSegment[]
   );
 }
 
+function InputWithUnit({
+  unit,
+  children,
+}: {
+  unit: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative mt-1.5 min-w-0">
+      {children}
+      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs tabular-nums text-zinc-500">
+        {unit}
+      </span>
+    </div>
+  );
+}
+
 function TrashIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -415,6 +430,8 @@ const RESET_INPUTS = {
 
 /** 初回表示のデフォルト */
 const DEFAULT_ONE_WAY_BIZ_DAYS = "2";
+
+const ONE_WAY_BIZ_DAY_OPTIONS = Array.from({ length: 14 }, (_, i) => i + 1);
 
 export function SimulatorClient() {
   const [purchase, setPurchase] = useState<string>(RESET_INPUTS.purchase);
@@ -506,10 +523,14 @@ export function SimulatorClient() {
       balance: false,
     };
 
-  const inputClass =
-    "mt-1.5 w-full min-w-0 max-w-full box-border rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-100 outline-none ring-amber-200/30 transition placeholder:text-zinc-500 focus:border-amber-200/40 focus:ring-2";
+  const inputFieldClass =
+    "w-full min-w-0 max-w-full box-border rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-100 outline-none ring-amber-200/30 transition placeholder:text-zinc-500 focus:border-amber-200/40 focus:ring-2";
 
-  const dateInputClass = `${inputClass} block min-w-0 appearance-none`;
+  const inputClass = `mt-1.5 ${inputFieldClass}`;
+
+  const inputClassWithUnit = `${inputFieldClass} pr-10`;
+
+  const dateInputClass = `${inputClass} block min-w-0`;
 
   const labelClass = "text-xs font-medium tracking-wide text-zinc-400";
 
@@ -521,9 +542,6 @@ export function SimulatorClient() {
 
   return (
     <div className="mx-auto w-full max-w-6xl overflow-x-clip px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-      <p className="mb-6 text-right text-[11px] tabular-nums text-zinc-500">
-        更新日：2026年5月25日
-      </p>
       <header className="mb-10 text-center sm:mb-12">
         <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
           PSA鑑定 利益シミュレーター
@@ -542,71 +560,79 @@ export function SimulatorClient() {
         <div className="mt-6 grid min-w-0 gap-5 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
           <div>
             <label className={labelClass} htmlFor="purchase">
-              仕入れ額（円）
+              仕入れ額
             </label>
-            <input
-              id="purchase"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              className={inputClass}
-              placeholder="例: 50,000"
-              value={purchase}
-              onChange={(e) =>
-                setPurchase(formatAmountFromDigits(e.target.value))
-              }
-            />
+            <InputWithUnit unit="円">
+              <input
+                id="purchase"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                className={inputClassWithUnit}
+                placeholder="例: 50,000"
+                value={purchase}
+                onChange={(e) =>
+                  setPurchase(formatAmountFromDigits(e.target.value))
+                }
+              />
+            </InputWithUnit>
           </div>
           <div>
             <label className={labelClass} htmlFor="sale">
-              PSA10想定販売額（円）
+              PSA鑑定品価格
             </label>
-            <input
-              id="sale"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              className={inputClass}
-              placeholder="例: 120,000"
-              value={salePrice}
-              onChange={(e) =>
-                setSalePrice(formatAmountFromDigits(e.target.value))
-              }
-            />
+            <InputWithUnit unit="円">
+              <input
+                id="sale"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                className={inputClassWithUnit}
+                placeholder="例: 120,000"
+                value={salePrice}
+                onChange={(e) =>
+                  setSalePrice(formatAmountFromDigits(e.target.value))
+                }
+              />
+            </InputWithUnit>
           </div>
           <div>
             <label className={labelClass} htmlFor="fee-rate">
-              販売手数料率（%）
+              販売手数料率
             </label>
-            <input
-              id="fee-rate"
-              type="number"
-              inputMode="decimal"
-              className={inputClass}
-              placeholder="例: 10"
-              value={commissionRate}
-              onChange={(e) => setCommissionRate(e.target.value)}
-            />
+            <InputWithUnit unit="%">
+              <input
+                id="fee-rate"
+                type="number"
+                inputMode="decimal"
+                className={inputClassWithUnit}
+                placeholder="例: 10"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(e.target.value)}
+              />
+            </InputWithUnit>
             <p className="mt-1.5 text-[11px] leading-snug text-zinc-500">
               （例）メルカリやスニダンの手数料
             </p>
           </div>
           <div>
             <label className={labelClass} htmlFor="other">
-              その他費用（円）
+              その他費用
             </label>
-            <input
-              id="other"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              className={inputClass}
-              placeholder="例: 2,000"
-              value={otherCost}
-              onChange={(e) =>
-                setOtherCost(formatAmountFromDigits(e.target.value))
-              }
-            />
+            <InputWithUnit unit="円">
+              <input
+                id="other"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                className={inputClassWithUnit}
+                placeholder="例: 2,000"
+                value={otherCost}
+                onChange={(e) =>
+                  setOtherCost(formatAmountFromDigits(e.target.value))
+                }
+              />
+            </InputWithUnit>
             <p className="mt-1.5 text-[11px] leading-snug text-zinc-500">
               （例）PSAの保険料、事務手数料、送料など
             </p>
@@ -628,18 +654,21 @@ export function SimulatorClient() {
           </div>
           <div>
             <label className={labelClass} htmlFor="oneway">
-              片道配送日数
+              自宅からPSA社までの配送所要日数
             </label>
-            <input
+            <select
               id="oneway"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              className={inputClass}
-              placeholder="未選択"
+              className={`${inputClass} sim-select`}
               value={oneWayBizDays}
               onChange={(e) => setOneWayBizDays(e.target.value)}
-            />
+            >
+              <option value="">未選択</option>
+              {ONE_WAY_BIZ_DAY_OPTIONS.map((days) => (
+                <option key={days} value={String(days)}>
+                  {days}日
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="mt-6 flex justify-center">
@@ -950,8 +979,9 @@ export function SimulatorClient() {
         </div>
       </section>
 
-      <footer className="mt-12 text-center text-[11px] leading-relaxed text-zinc-600">
-        表示はあくまでシミュレーションです。あらかじめご了承ください。
+      <footer className="mt-12 space-y-2 text-center text-[11px] leading-relaxed text-zinc-600">
+        <p>表示はあくまでシミュレーションです。あらかじめご了承ください。</p>
+        <p className="tabular-nums text-zinc-500">更新日：2026年5月25日</p>
       </footer>
     </div>
   );
