@@ -541,7 +541,7 @@ export function SimulatorClient() {
     (r.profit !== null && r.profit.profit < 0);
 
   return (
-    <div className="mx-auto w-full max-w-6xl overflow-x-clip px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+    <div className="mx-auto w-full min-w-0 max-w-6xl overflow-x-hidden px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
       <header className="mb-10 text-center sm:mb-12">
         <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
           PSA鑑定 利益シミュレーター
@@ -641,7 +641,7 @@ export function SimulatorClient() {
             <label className={labelClass} htmlFor="ship">
               発送日
             </label>
-            <div className="mt-1.5 min-w-0 w-full overflow-hidden">
+            <div className="sim-date-field mt-1.5">
               <input
                 id="ship"
                 type="date"

@@ -28,9 +28,29 @@ input[type="date"] {
 }
 
 input[type="date"].sim-date-input {
+  flex: 1 1 0%;
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  padding-right: 2.5rem;
+}
+
+input[type="date"].sim-date-input::-webkit-datetime-edit {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+input[type="date"].sim-date-input::-webkit-datetime-edit-fields-wrapper {
+  min-width: 0;
+}
+
+input[type="date"].sim-date-input::-webkit-datetime-edit-year-field,
+input[type="date"].sim-date-input::-webkit-datetime-edit-month-field,
+input[type="date"].sim-date-input::-webkit-datetime-edit-day-field {
+  min-width: 0;
+  padding: 0;
 }
 
 input[type="date"].sim-date-input::-webkit-date-and-time-value {
@@ -38,10 +58,30 @@ input[type="date"].sim-date-input::-webkit-date-and-time-value {
   text-align: left;
 }
 
+input[type="date"].sim-date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  margin: 0;
+  transform: translateY(-50%);
+  cursor: pointer;
+  filter: brightness(0) invert(1);
+  opacity: 1;
+}
+
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   filter: brightness(0) invert(1);
   opacity: 1;
+}
+
+.sim-date-field {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 select.sim-select {
