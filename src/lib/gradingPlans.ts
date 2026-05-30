@@ -47,7 +47,7 @@ export const gradingPlans: GradingPlan[] = [
     maxDeclaredValueYen: 80_000,
     fee: 4980,
     turnaroundDays: 160,
-    turnaroundDaysRevised: true,
+    suspended: true,
   },
   {
     id: "value-plus",
