@@ -983,7 +983,7 @@ export function SimulatorClient() {
 
       <footer className="mt-12 space-y-2 text-center text-[11px] leading-relaxed text-zinc-600">
         <p>表示はあくまでシミュレーションです。あらかじめご了承ください。</p>
-        <p className="tabular-nums text-zinc-500">更新日：2026年5月25日</p>
+        <p className="tabular-nums text-zinc-500">更新日：2026年5月30日</p>
       </footer>
     </div>
   );
