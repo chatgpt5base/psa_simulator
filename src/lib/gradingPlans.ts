@@ -12,9 +12,28 @@ export type GradingPlan = {
   turnaroundDays: number;
   /** 受付停止中のプラン（比較表ではグレー表示・戦略判定対象外） */
   suspended?: boolean;
+  /** YYYY-MM-DD。この日付以降（当日含む）に受付停止扱い */
+  suspendedFrom?: string;
   /** サービスレベル改定で予定納期が変更されたプラン（赤文字表示） */
   turnaroundDaysRevised?: boolean;
 };
+
+function localDateStamp(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+/** 受付停止中か（常時停止 or suspendedFrom 以降） */
+export function isPlanSuspended(
+  plan: GradingPlan,
+  now: Date = new Date(),
+): boolean {
+  if (plan.suspended === true) return true;
+  if (plan.suspendedFrom) return localDateStamp(now) >= plan.suspendedFrom;
+  return false;
+}
 
 /** PSA10想定販売額が当該プランの申告上限を超えるか（入力が無効・空のときは false） */
 export function exceedsDeclaredValueMax(
@@ -47,7 +66,8 @@ export const gradingPlans: GradingPlan[] = [
     maxDeclaredValueYen: 80_000,
     fee: 4980,
     turnaroundDays: 160,
-    suspended: true,
+    turnaroundDaysRevised: true,
+    suspendedFrom: "2026-06-03",
   },
   {
     id: "value-plus",

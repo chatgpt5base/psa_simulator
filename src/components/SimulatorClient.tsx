@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   exceedsDeclaredValueMax,
   gradingPlans,
+  isPlanSuspended,
   type GradingPlan,
 } from "@/lib/gradingPlans";
 import {
@@ -63,7 +64,7 @@ function strategyEligible(
   saleYenParsed: number | null,
 ): boolean {
   return (
-    !r.plan.suspended &&
+    !isPlanSuspended(r.plan) &&
     r.profit !== null &&
     !exceedsDeclaredValueMax(saleYenParsed, r.plan) &&
     r.profit.profit >= 0
@@ -254,7 +255,7 @@ function MobilePlanCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <p className="font-medium text-zinc-100">{row.plan.name}</p>
-            {row.plan.suspended && <SuspendedBadge />}
+            {isPlanSuspended(row.plan) && <SuspendedBadge />}
           </div>
           <StrategyBadges
             flags={flags}
@@ -374,7 +375,7 @@ type MobilePlanSegment =
 
 function buildMobilePlanSegments(rows: PlanComparisonRow[]): MobilePlanSegment[] {
   return rows.map((row) =>
-    row.plan.suspended
+    isPlanSuspended(row.plan)
       ? { type: "suspended", row }
       : { type: "active", row },
   );
@@ -536,7 +537,7 @@ export function SimulatorClient() {
 
   /** 受付停止中、申告上限超過、または想定利益がマイナス */
   const rowGrayed = (r: PlanComparisonRow) =>
-    r.plan.suspended === true ||
+    isPlanSuspended(r.plan) ||
     exceedsDeclaredValueMax(saleYenParsed, r.plan) ||
     (r.profit !== null && r.profit.profit < 0);
 
@@ -898,7 +899,7 @@ export function SimulatorClient() {
                       <div className="min-w-0 pr-2">
                         <span className="flex flex-wrap items-center gap-1.5 text-zinc-100">
                           {r.plan.name}
-                          {r.plan.suspended && <SuspendedBadge />}
+                          {isPlanSuspended(r.plan) && <SuspendedBadge />}
                         </span>
                         <span className="mt-0.5 block text-[10px] leading-snug text-zinc-500">
                           申告価格 {r.plan.declaredValueLabel}
